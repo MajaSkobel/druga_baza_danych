@@ -26,12 +26,27 @@ measures = Table(
     Column('tobs', Integer),
 )
 
+def insert(conn,table,input_values):
+    ins = table.insert().values(input_values)
+    conn.execute(ins)
+
+def delete(conn,table,condition):
+    delet = table.delete().where(condition)
+    conn.execute(delet)
+
+def select_and_show(conn,table,condition):
+    select = table.select().where(condition)
+    result = conn.execute(select)
+    for row in result:
+        print(row)
+
 if __name__ == '__main__':
     
     engine = create_engine('sqlite:///weather_data.db', echo=True)
+    conn=engine.connect()
     meta.create_all(engine)
 
-    txt_file = r"C:\Users\user\Desktop\Kodilla\clean_stations.txt"
+    txt_file = r"clean_stations.txt"
     with open(txt_file, 'r', newline='') as file:
         reader = csv.DictReader(file)
         for row in reader:
@@ -45,9 +60,9 @@ if __name__ == '__main__':
                 'state': row['state'],
             }
             insert_station = stations.insert().values(station_data)
-            engine.connect().execute(insert_station)
+            conn.execute(insert_station)
 
-    txt_file = r"C:\Users\user\Desktop\Kodilla\clean_measure.txt"
+    txt_file = r"clean_measure.txt"
     with open(txt_file, newline='') as file:
         reader = csv.DictReader(file)
         for row in reader:
@@ -58,18 +73,21 @@ if __name__ == '__main__':
                 'tobs': int(row['tobs']),
             }
             insert_measure = measures.insert().values(measure_data)
-            engine.connect().execute(insert_measure)
+            conn.execute(insert_measure)
 
     print("Przeprowadzamy kilka testów!:")
-    print("Najpierw dodajmy jakieś dane:")
-    ins = measures.insert().values(station_name='USC00519281',date='2024-07-06',precip=0.01,tobs=70)
-    engine.connect().execute(ins)
-    print("Teraz usuńmy coś:")
-    delete = measures.delete().where(measures.c.station_name == 'USC00516128')
-    engine.connect().execute(delete)
-    print("A na koniec coś wybierzmy:")
-    select = stations.select().where(stations.c.latitude > 21.4)
-    result = engine.connect().execute(select)
-    for row in result:
-        print(row)
 
+    print("Najpierw dodajmy jakieś dane:")
+    measure_data = {
+        'station_name':'USC00519281',
+        'date':'2024-07-06',
+        'precip':0.01,
+        'tobs':70,
+    }
+    insert(conn,measures,measure_data)
+
+    print("Teraz usuńmy coś:")
+    delete(conn,measures,measures.c.station_name == 'USC00516128')
+
+    print("A na koniec coś wybierzmy i pokażmy co wybraliśmy:")
+    select_and_show(conn,stations,stations.c.latitude > 21.4 ) 
